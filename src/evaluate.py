@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import (
@@ -9,28 +7,24 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay
 )
 
-from torchvision.models import mobilenet_v2
-
 from dataset import test_loader, test_dataset
+from model import create_model
 
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
 
 NUM_CLASSES = len(test_dataset.classes)
 
 
-# Construim aceeași arhitectură
-model = mobilenet_v2(weights=None)
-
-input_features = model.classifier[1].in_features
-
-model.classifier[1] = nn.Linear(
-    input_features,
-    NUM_CLASSES
+# Create model architecture
+model = create_model(
+    num_classes=NUM_CLASSES
 )
 
 
-# Încărcăm cel mai bun model
+# Load best checkpoint
 model.load_state_dict(
     torch.load(
         "models/best_waste_classifier.pth",
@@ -58,10 +52,16 @@ with torch.no_grad():
 
         outputs = model(images)
 
-        _, predictions = torch.max(outputs, 1)
+        _, predictions = torch.max(
+            outputs,
+            1
+        )
 
         total += labels.size(0)
-        correct += (predictions == labels).sum().item()
+
+        correct += (
+            predictions == labels
+        ).sum().item()
 
         all_predictions.extend(
             predictions.cpu().numpy()
@@ -74,7 +74,10 @@ with torch.no_grad():
 
 accuracy = 100 * correct / total
 
-print(f"\nTest Accuracy: {accuracy:.2f}%\n")
+print(
+    f"\nTest Accuracy: "
+    f"{accuracy:.2f}%\n"
+)
 
 
 print("Classification Report:\n")
@@ -105,7 +108,9 @@ display = ConfusionMatrixDisplay(
     display_labels=test_dataset.classes
 )
 
-fig, ax = plt.subplots(figsize=(8, 8))
+fig, ax = plt.subplots(
+    figsize=(8, 8)
+)
 
 display.plot(
     ax=ax,
@@ -113,9 +118,13 @@ display.plot(
     values_format="d"
 )
 
-plt.title("Waste Classification - Confusion Matrix")
+plt.title(
+    "Waste Classification - Confusion Matrix"
+)
+
 plt.xticks(rotation=45)
 plt.tight_layout()
+
 
 plt.savefig(
     "results/confusion_matrix.png",
@@ -125,4 +134,8 @@ plt.savefig(
 
 plt.close()
 
-print("\nConfusion matrix saved to results/confusion_matrix.png")
+
+print(
+    "\nConfusion matrix saved to "
+    "results/confusion_matrix.png"
+)

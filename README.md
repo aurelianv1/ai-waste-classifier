@@ -119,6 +119,7 @@ ai-waste-classifier/
 │   ├── evaluate.py
 │   ├── predict.py
 │   ├── split_dataset.py
+│   ├── model.py
 │   └── train.py
 ├── .dockerignore
 ├── .gitignore

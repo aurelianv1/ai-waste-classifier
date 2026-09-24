@@ -124,6 +124,7 @@ ai-waste-classifier/
 ├── .gitignore
 ├── Dockerfile
 ├── requirements.txt
+├── requirements-docker.txt
 └── README.md
 ```
 

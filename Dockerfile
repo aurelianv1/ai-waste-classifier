@@ -7,9 +7,9 @@ RUN pip install --no-cache-dir \
     torchvision==0.29.0 \
     --index-url https://download.pytorch.org/whl/cpu
 
-COPY requirements.txt .
+COPY requirements-docker.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-docker.txt
 
 COPY app/ app/
 COPY src/ src/

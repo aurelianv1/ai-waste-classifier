@@ -100,6 +100,7 @@ The dataset itself is not included in this repository.
 - Streamlit
 - Matplotlib
 - Pillow
+- Docker
 
 ## Project Structure
 
@@ -119,6 +120,9 @@ ai-waste-classifier/
 │   ├── predict.py
 │   ├── split_dataset.py
 │   └── train.py
+├── .dockerignore
+├── .gitignore
+├── Dockerfile
 ├── requirements.txt
 └── README.md
 ```
@@ -128,7 +132,7 @@ ai-waste-classifier/
 Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/aurelianv1/ai-waste-classifier.git
 cd ai-waste-classifier
 ```
 
@@ -154,6 +158,28 @@ streamlit run app/app.py
 ```
 
 Then open the local Streamlit address shown in the terminal.
+
+## Run with Docker
+
+The application can also be run inside a Docker container using a CPU-only PyTorch environment.
+
+Build the Docker image:
+
+```bash
+docker build -t ai-waste-classifier .
+```
+
+Run the container:
+
+```bash
+docker run --rm -p 8501:8501 ai-waste-classifier
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
 
 ## Command-Line Prediction
 
@@ -198,9 +224,9 @@ Potential improvements include:
 - Using a larger and more diverse waste dataset
 - Addressing class imbalance
 - Adding additional waste categories
-- Dockerizing the application
-- Deploying the Streamlit application
-- Adding automated tests and CI/CD
+- Deploying the Dockerized application
+- Adding automated tests
+- Adding a CI/CD pipeline
 
 ## Author
 

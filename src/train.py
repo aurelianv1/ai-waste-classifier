@@ -134,10 +134,12 @@ for epoch in range(EPOCHS):
     )
 
 
-# 6. Salvăm modelul
-# torch.save(
-#     model.state_dict(),
-#     "models/waste_classifier.pth"
-# )
+print(
+    f"\nTraining complete. "
+    f"Best validation accuracy: {best_val_accuracy:.2f}%"
+)
 
-print("Model saved to models/waste_classifier.pth")
+print(
+    "Best model saved to "
+    "models/best_waste_classifier.pth"
+)

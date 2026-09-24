@@ -1,0 +1,11 @@
+.venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+
+data/
+results/
+examples/
+
+README.md

@@ -1,5 +1,7 @@
 # ♻️ AI Waste Classification System
 
+[![Tests](https://github.com/aurelianv1/ai-waste-classifier/actions/workflows/tests.yml/badge.svg)](https://github.com/aurelianv1/ai-waste-classifier/actions/workflows/tests.yml)
+
 An image classification application that uses deep learning to identify different types of waste and provide recycling recommendations.
 
 The project uses **transfer learning with MobileNetV2**, trained on the TrashNet dataset, and includes a **Streamlit web interface** for real-time image classification.

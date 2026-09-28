@@ -4,7 +4,7 @@
 
 An image classification application that uses deep learning to identify different types of waste and provide recycling recommendations.
 
-The project uses **transfer learning with MobileNetV2**, trained on the TrashNet dataset, and includes a **Streamlit web interface** for real-time image classification.
+The project uses **transfer learning with MobileNetV2**, trained on the TrashNet dataset, and includes a **Streamlit web interface** for real-time image classification. The application is containerized with **Docker** and covered by automated tests running in **GitHub Actions**.
 
 ## Demo
 
@@ -18,6 +18,27 @@ Upload an image of a waste item and the application predicts one of six categori
 - Trash
 
 The application also displays prediction confidence, class probabilities, and a recycling recommendation when the model is sufficiently confident.
+
+![App screenshot](results/app_screenshot.png)
+
+
+## Table of Contents
+
+- [Model Performance](#model-performance)
+- [Architecture](#architecture)
+- [Dataset](#dataset)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Run the Web Application](#run-the-web-application)
+- [Run with Docker](#run-with-docker)
+- [Command-Line Prediction](#command-line-prediction)
+- [Training the Model](#training-the-model)
+- [Evaluation](#evaluation)
+- [Testing and CI](#testing-and-ci)
+- [Limitations](#limitations)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
 
 ## Model Performance
 
@@ -41,7 +62,7 @@ The model was evaluated on an independent test set containing **384 images**.
 | Plastic | 84.72% | 83.56% | 84.14% |
 | Trash | 77.78% | 63.64% | 70.00% |
 
-## Confusion Matrix
+### Confusion Matrix
 
 ![Confusion Matrix](results/confusion_matrix.png)
 
@@ -57,21 +78,26 @@ Instead of training a convolutional neural network from scratch, transfer learni
 
 1. Load pretrained MobileNetV2 weights.
 2. Freeze the convolutional feature extractor.
-3. Replace the final classification layer.
-4. Train the classifier for the six TrashNet categories.
+3. Replace the final classification layer with a 6-class linear layer.
+4. Train only the classifier for the six TrashNet categories.
 5. Select the checkpoint with the highest validation accuracy.
 
-Input images are resized to:
+### Training configuration
 
-```text
-224 × 224 pixels
-```
-
-Training data augmentation includes random horizontal flipping and random rotation.
+| Setting | Value |
+|---|---|
+| Input size | 224 × 224 pixels |
+| Optimizer | Adam |
+| Learning rate | 0.001 |
+| Batch size | 32 |
+| Epochs | 10 |
+| Loss function | Cross-entropy |
+| Data augmentation | Random horizontal flip, random rotation (±10°) |
+| Trainable parameters | Final classification layer only |
 
 ## Dataset
 
-The project uses the **TrashNet** dataset containing **2,527 images** across six categories.
+The project uses the **[TrashNet](https://github.com/garythung/trashnet)** dataset containing **2,527 images** across six categories.
 
 | Class | Images |
 |---|---:|
@@ -82,15 +108,15 @@ The project uses the **TrashNet** dataset containing **2,527 images** across six
 | Plastic | 482 |
 | Trash | 137 |
 
-The dataset is divided into:
+The dataset is divided per class into:
 
 - 70% training
 - 15% validation
 - 15% testing
 
-A fixed random seed is used to make the split reproducible.
+The split is performed by `src/split_dataset.py` using a fixed random seed (42).
 
-The dataset itself is not included in this repository.
+The dataset itself is not included in this repository (see [Training the Model](#training-the-model) for setup instructions).
 
 ## Tech Stack
 
@@ -103,11 +129,16 @@ The dataset itself is not included in this repository.
 - Matplotlib
 - Pillow
 - Docker
+- Pytest
+- GitHub Actions
 
 ## Project Structure
 
 ```text
 ai-waste-classifier/
+├── .github/
+│   └── workflows/
+│       └── tests.yml
 ├── app/
 │   └── app.py
 ├── examples/
@@ -119,13 +150,17 @@ ai-waste-classifier/
 ├── src/
 │   ├── dataset.py
 │   ├── evaluate.py
+│   ├── model.py
 │   ├── predict.py
 │   ├── split_dataset.py
-│   ├── model.py
 │   └── train.py
+├── tests/
+│   ├── test_model.py
+│   └── test_prediction.py
 ├── .dockerignore
 ├── .gitignore
 ├── Dockerfile
+├── pytest.ini
 ├── requirements.txt
 ├── requirements-docker.txt
 └── README.md
@@ -144,7 +179,12 @@ Create a virtual environment:
 
 ```bash
 python -m venv .venv
+
+# Linux / macOS
 source .venv/bin/activate
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
 ```
 
 Install dependencies:
@@ -152,6 +192,8 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+The repository includes the trained model (`models/best_waste_classifier.pth`), so you can run the application and the command-line prediction without training anything.
 
 ## Run the Web Application
 
@@ -161,7 +203,15 @@ Start the Streamlit application:
 streamlit run app/app.py
 ```
 
-Then open the local Streamlit address shown in the terminal.
+Then open the local Streamlit address shown in the terminal (by default `http://localhost:8501`).
+
+### How the app interprets predictions
+
+| Confidence | Behavior |
+|---|---|
+| ≥ 70% | Green success message and disposal recommendation |
+| 50% – 70% | Warning that the model is not highly confident, with disposal recommendation |
+| < 50% | Error message asking for another image, no disposal recommendation |
 
 ## Run with Docker
 
@@ -187,7 +237,7 @@ http://localhost:8501
 
 ## Command-Line Prediction
 
-A single image can also be classified directly from the terminal:
+A single image can also be classified directly from the terminal (run from the repository root):
 
 ```bash
 python src/predict.py examples/bottle.jpg
@@ -200,37 +250,87 @@ Prediction: plastic
 Confidence: 57.09%
 ```
 
-## Evaluation
+The script also prints the probability of every class.
 
-Evaluate the trained model on the test dataset:
+## Training the Model
+
+Training is optional, since a trained checkpoint is already included. To reproduce it, run all commands from the repository root.
+
+**1. Download the dataset.**
+Download the resized TrashNet dataset (`dataset-resized`) from the [TrashNet repository](https://github.com/garythung/trashnet) and extract it so that the class folders are located at:
+
+```text
+data/dataset-resized/
+├── cardboard/
+├── glass/
+├── metal/
+├── paper/
+├── plastic/
+└── trash/
+```
+
+**2. Split the dataset into train / validation / test:**
+
+```bash
+python src/split_dataset.py
+```
+
+This creates `data/split/train`, `data/split/val` and `data/split/test`.
+
+**3. Train the model:**
+
+```bash
+python src/train.py
+```
+
+The checkpoint with the best validation accuracy is saved to `models/best_waste_classifier.pth`.
+
+**4. Evaluate the model:**
 
 ```bash
 python src/evaluate.py
 ```
 
-The evaluation script reports accuracy, precision, recall and F1 score and generates the confusion matrix.
+## Evaluation
+
+The evaluation script (`src/evaluate.py`) loads the best checkpoint and runs it on the test set. It reports accuracy, precision, recall and F1 score per class, and saves the confusion matrix to `results/confusion_matrix.png`.
+
+## Testing and CI
+
+Run the automated tests locally:
+
+```bash
+pytest -v
+```
+
+The tests check that:
+
+- the model has the correct number of output classes,
+- the model accepts a 224 × 224 image and returns one score per class,
+- the trained checkpoint loads and produces a valid probability distribution for the example image.
+
+The same test suite runs automatically on every push and pull request to `main` through **GitHub Actions** (see `.github/workflows/tests.yml`).
 
 ## Limitations
 
-The model was trained on the relatively small TrashNet dataset.
-
-Real-world images can differ significantly from the training distribution in terms of backgrounds, lighting, object orientation and object type. As a result, the model may produce low-confidence or incorrect predictions for unfamiliar images.
-
-The `trash` class is also underrepresented in the dataset, which contributes to lower recall for this category.
-
-To reduce misleading recommendations, the web application only provides a disposal recommendation when prediction confidence is at least **50%**.
+- The model was trained on the relatively small TrashNet dataset (2,527 images).
+- Real-world images can differ significantly from the training distribution in terms of backgrounds, lighting, object orientation and object type. As a result, the model may produce low-confidence or incorrect predictions for unfamiliar images.
+- The `trash` class is underrepresented in the dataset (137 images), which contributes to its lower recall. It also has only 22 test images, so its metrics are noisier than those of the other classes.
+- TrashNet contains several photos of the same object, so images in the training and test sets may be visually similar. Accuracy on completely new, real-world photos may therefore be lower than the reported test accuracy.
+- The model always chooses one of the six known categories, even for objects that do not belong to any of them, and softmax confidence is not a calibrated probability.
+- To reduce misleading recommendations, the web application only provides a disposal recommendation when prediction confidence is at least **50%**.
+- Disposal recommendations are generic. Actual recycling rules vary by country and municipality.
 
 ## Future Improvements
 
-Potential improvements include:
-
+- Applying ImageNet input normalization and retraining
 - Fine-tuning additional MobileNetV2 layers
+- Addressing class imbalance (class weights or weighted sampling)
+- Comparing MobileNetV2 with other architectures
+- Evaluating on a separate set of real-world photos
 - Using a larger and more diverse waste dataset
-- Addressing class imbalance
 - Adding additional waste categories
-- Deploying the Dockerized application
-- Adding automated tests
-- Adding a CI/CD pipeline
+- Deploying the Dockerized application publicly
 
 ## Author
 
